@@ -1,0 +1,199 @@
+/*
+ *  Copyright (C) 2011 - 2014 Xilinx
+ *  Copyright (C) 2012 National Instruments Corp.
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+/dts-v1/;
+/include/ "zynq-7000.dtsi"
+/include/ "pl_hdmi.dtsi"
+
+/ {
+	model = "MYIR Zynq Development Board";
+	compatible = "myir,zynq-myd", "xlnx,zynq-7000";
+
+	aliases {
+		ethernet0 = &gem0;
+		serial0 = &uart1;
+		serial1 = &uart0;
+		spi0 = &qspi;
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x0 0x20000000>; // Reserved 256MB for xylonfb driver
+	};
+
+	chosen {
+		bootargs = "console=ttyPS0,115200 root=/dev/ram rw earlyprintk";
+		linux,stdout-path = "/amba/serial@e0001000";
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		sys_led {
+			label = "sys_led";
+			gpios = <&gpio0 8 1>;
+			default-state = "off";
+			linux,default-trigger = "none";
+		};
+
+		usr_led {
+			label = "usr_led";
+			gpios = <&gpio0 54 1>;
+			default-state = "off";
+			linux,default-trigger = "none";
+		};
+
+		gpio {
+			label = "usr_gpio";
+			gpios = <&gpio0 55 1>;
+			default-state = "off";
+			linux,default-trigger = "none";
+		};
+	};
+
+        usb_phy0: phy0@e0002000 {
+                compatible = "ulpi-phy";
+                #phy-cells = <0>;
+                reg = <0xe0002000 0x1000>;
+                view-port = <0x0170>;
+                drv-vbus;
+        };
+
+};
+
+&gpio0 {
+    	emio-gpio-width = <64>;
+    	gpio-mask-high = <0x0>;
+    	gpio-mask-low = <0x5600>;
+    	xlnx,emio-gpio-width = <0x40>;
+    	xlnx,mio-gpio-mask = <0x5600>;
+};
+
+&qspi {
+	status = "okay";
+	is-dual = <0>;
+	num-cs = <1>;
+	xlnx,fb-clk = <0x1>;
+	xlnx,qspi-mode = <0x0>;
+	flash@0 {
+		//compatible = "n25q128";
+		compatible = "n25q512a","micron,m25p80";
+		reg = <0x0>;
+		spi-tx-bus-width = <1>;
+		spi-rx-bus-width = <4>;
+		spi-max-frequency = <50000000>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		partition@qspi-boot {
+			label = "qspi-boot";
+			reg = <0x0 0x500000>;
+		};
+		partition@qspi-kernel {
+			label = "qspi-kernel";
+			reg = <0x500000 0x480000>;
+		};
+		partition@qspi-devicetree {
+			label = "qspi-devicetree";
+			reg = <0x980000 0x010000>;
+		};
+		partition@qspi-rootfs {
+			label = "qspi-rootfs";
+			reg = <0x990000 0x600000>;
+		};
+		partition@qspi-data {
+			label = "data";
+			reg = <0xF90000 0x070000>;
+		};
+	};
+};
+
+&usb0 {
+	status = "okay";
+        dr_mode = "host";
+        usb-phy = <&usb_phy0>;
+};
+
+&gem0 {
+    status = "okay";
+    phy-mode = "rgmii-id";
+    phy-handle = <&phy0>;
+    phy0: phy@0 {
+        device_type = "ethernet-phy";
+        reg = <3>;
+    };
+};
+
+&sdhci1 {
+	status = "okay";
+   	xlnx,has-cd = <0x1>;
+    	xlnx,has-power = <0x0>;
+    	xlnx,has-wp = <0x0>;
+};
+
+&sdhci0 {
+	status = "okay";
+    	xlnx,has-cd = <0x1>;
+    	xlnx,has-power = <0x0>;
+    	xlnx,has-wp = <0x1>;
+};
+
+&uart0 {
+	status = "okay";
+    	port-number = <1>;
+	device_type = "serial";
+};
+
+&uart1 {
+	status = "okay";
+    	port-number = <0>;
+	device_type = "serial";
+};
+
+&i2c0 {
+	status = "okay";
+//  bus-id = <0x0>;
+    clock-frequency = <400000>;
+    xlnx,has-interrupt = <0x1>;
+	
+    adxl345@53 {
+        compatible = "adi,adxl34x","adxl34x";
+        reg = <0x53>;
+        interrupt-parent = <&intc>;
+        interrupts = < 0 31 4 >;
+    };
+
+    sii902x@3b {
+        compatible = "sii902x";
+        reg = <0x3b>;
+        interrupt-parent = <&intc>;
+        interrupts = < 0 29 4 >;
+		mode_str = "1920x1080";
+		bits-per-pixel = <16>;
+	display-color-space = <0>; //0:RGB, 1:YUV
+	hdmi_rst = <&gpio0 56 0>;
+    };
+
+	/*
+	stlm75@49 {
+		status = "okay";
+		compatible = "myir-stlm75x";
+		reg = <0x49>;
+		interrupts = < 0 32 4 >;
+	};*/
+};
+
+&can1 {
+	status = "okay";
+};
+
+
